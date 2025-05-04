@@ -3,6 +3,7 @@ import sys
 import os
 
 from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor, RandomForestRegressor
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from src.logger import logging
 from src.exception import CustomException
@@ -40,10 +41,50 @@ class ModelTrainer:
                 'Linear Regression': LinearRegression(),
                 'XGBRegressor': xgboost.XGBRegressor(),
                 'CatBoosting Regressor': catboost.CatBoostRegressor(verbose=False),
-                'AdaBoost Regressor': AdaBoostRegressor()
+                'AdaBoost Regressor': AdaBoostRegressor(),
+                'K-Neighbors Regressor': KNeighborsRegressor()
             }
 
-            model_report:dict = evaluate_models(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, models=models)
+            params = {
+                'Decision Tree': {
+                    'criterion': ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'],
+                    'splitter': ['best', 'random'],
+                    'max_features': ['sqrt', 'log2']
+
+                },
+                'Random Forest': {
+                    'n_estimators': [8, 16, 32, 64, 128, 256],
+                    # 'max_features': ['sqrt', 'log2'],
+                    # 'max_depth': [None, 10, 20, 30, 40, 50],
+                    # 'min_samples_split': [2, 5, 10],
+                    # 'min_samples_leaf': [1, 2, 4]
+                },
+                'Gradient Boosting': {
+                    # 'loss': ['squared_error', 'absolute_error', 'huber', 'quantile'],
+                    'learning_rate': [0.1, 0.01, 0.05, 0.001],
+                    'n_estimators': [8, 16, 32, 64, 128, 256]
+                },
+                'Linear Regression': {},
+                'K-Neighbors Regressor': {
+                    'n_neighbors': [3, 5, 7, 9, 11],
+                    # 'weights': ['uniform', 'distance'],
+                    # 'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute']
+                },
+                'XGBRegressor': {
+                    'learning_rate': [0.1, 0.01, 0.05, 0.001],
+                    'n_estimators': [8, 16, 32, 64, 128, 256]
+                },
+                'CatBoosting Regressor': {
+                    'learning_rate': [0.01, 0.05, 0.1],
+                    'iterations': [30, 50, 100]
+                },
+                'AdaBoost Regressor': {
+                    'learning_rate': [0.1, 0.01, 0.5, 0.001],
+                    'n_estimators': [8, 16, 32, 64, 128, 256]
+                }
+            }
+
+            model_report:dict = evaluate_models(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, models=models, params=params)
             
             #to get the best model score from the model_report
             best_model_score = max(sorted(model_report.values()))
@@ -58,7 +99,7 @@ class ModelTrainer:
             if best_model_score < 0.6:
                 raise CustomException("No best model found")
             
-            logging.info(f"Best found model on both training and testing dataset")
+            logging.info(f"Best found model on both training and testing dataset {best_model_name} with r2 score {best_model_score}")
             
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
